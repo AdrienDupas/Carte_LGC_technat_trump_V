@@ -354,8 +354,8 @@ function App() {
           .attr('d', path as any)
           .attr('fill', d => d.properties.cat === 1 ? '#6d000d' : '#DD203C') // cat 2 = #DD203C
           .attr('fill-opacity', 0.8)
-          .attr('stroke', 'None')
-          .attr('stroke-width', 1.5)
+          .attr('stroke', 'none')
+          .attr('stroke-width', 0)
           .attr('pointer-events', 'none')
         aireEcoCatGroup.transition()
           .duration(700)
@@ -391,21 +391,17 @@ function App() {
           .data(aireEcoData.features)
           .join('path')
           .attr('d', path as any)
-          .attr('fill', 'None')
-          .attr('fill-opacity', 0.6)
-          .attr('stroke', '#ba0000')
+          .attr('fill', 'none')
+          .attr('stroke', '#df5757')
           .attr('stroke-width', 1.5)
-          .attr('stroke-dasharray', '8 4')
-          .attr('stroke-dashoffset', 0)
-          .attr('stroke-linejoin', 'round')
-          .attr('stroke-linecap', 'round')
+         
           .attr('pointer-events', 'none')
-          .style('shape-rendering', 'geometricPrecision')
         aireEcoGroup.transition()
           .duration(700)
           .style('opacity', 1)
       }
 
+      
       // Frontières actuelles (visibles étape 3)
       if (showTrumpGolf && frontiereActuelleData) {
         const gActuelle = svg.append('g')
@@ -700,6 +696,89 @@ function App() {
       }
 
       // ======================
+      // LABELS DES PAYS (ÉTAPES 2 ET 3)
+      // ======================
+      if (technatAnimated) {
+        const countryLabels = showTrumpGolf 
+          ? [
+              { label: 'USA', nameFr: 'États-Unis' },
+              { label: 'CAN', nameFr: 'Canada' },
+              { label: 'MEX', nameFr: 'Mexique' },
+              { label: 'GRL', nameFr: 'Groenland' },
+              { label: 'VEN', nameFr: 'Venezuela' }
+            ]
+          : [
+              { label: 'USA', nameFr: 'États-Unis' },
+              { label: 'CAN', nameFr: 'Canada' },
+              { label: 'MEX', nameFr: 'Mexique' },
+              { label: 'GRL', nameFr: 'Groenland' },
+              { label: 'VEN', nameFr: 'Venezuela' },
+              { label: 'COL', nameFr: 'Colombie' }
+            ]
+
+        const labelFontSize = width < 600 ? 10 : width < 900 ? 13 : 16
+
+        countryLabels.forEach(({ label, nameFr }, index) => {
+          const country = filteredFeatures.find(f => f.properties.NAME_FR === nameFr)
+          if (country) {
+            const centroid = d3.geoCentroid(country as any)
+            const coords = projection(centroid)
+            if (coords) {
+              // Décalages pour certains pays
+              let offsetX = 0
+              let offsetY = 0
+              if (label === 'CAN') {
+                offsetX = -50
+              } else if (label === 'VEN') {
+                offsetX = 10
+                offsetY = -10
+              }
+              
+              const labelGroup = svg.append('g')
+                .attr('class', `country-label-${label}`)
+                .style('opacity', (showTrumpGolf && trumpGolfAnimated) ? 1 : 0)
+              
+              // Contour rouge
+              labelGroup.append('text')
+                .attr('x', coords[0] + offsetX)
+                .attr('y', coords[1] + offsetY)
+                .text(label)
+                .attr('font-family', '"Sanomat Web Medium Regular", serif')
+                .attr('font-size', labelFontSize)
+                .attr('font-weight', 'bold')
+                .attr('fill', 'none')
+                .attr('text-anchor', 'middle')
+                .attr('alignment-baseline', 'middle')
+                .attr('stroke', '#DD203C')
+                .attr('stroke-width', 3)
+                .attr('stroke-linejoin', 'round')
+                .attr('stroke-linecap', 'round')
+              
+              // Texte blanc
+              labelGroup.append('text')
+                .attr('x', coords[0] + offsetX)
+                .attr('y', coords[1] + offsetY)
+                .text(label)
+                .attr('font-family', '"Sanomat Web Medium Regular", serif')
+                .attr('font-size', labelFontSize)
+                .attr('font-weight', 'bold')
+                .attr('fill', '#ffffff')
+                .attr('text-anchor', 'middle')
+                .attr('alignment-baseline', 'middle')
+              
+              // Animation progressive (uniquement si pas encore à l'étape 3 animée)
+              if (!showTrumpGolf || !trumpGolfAnimated) {
+                labelGroup.transition()
+                  .delay(index * 30)
+                  .duration(600)
+                  .style('opacity', 1)
+              }
+            }
+          }
+        })
+      }
+
+      // ======================
       // NOMS DES OCÉANS
       // ======================
       const oceans = [
@@ -985,7 +1064,7 @@ function App() {
               bottom: 16,
               right: 16,
               backgroundColor: '#ffffff',
-              color: 'black',
+              color: '#4c4c4c',
               fontFamily: '"Publico Text Web Regular", serif',
               fontSize: { xs: '10px', md: '14px' },
               textTransform: 'none',
@@ -1023,7 +1102,7 @@ function App() {
         }} />
       </Box>
       
-      <Box sx={{ width: '100%', minHeight: { xs: '145px', md: '80px' }, flexShrink: 0 }}>
+      <Box sx={{ width: '100%', minHeight: { xs: '157px', md: '80px' }, flexShrink: 0 }}>
         <Legend showTechnat={showTechnat} showTrumpGolf={showTrumpGolf} />
       </Box>
     </Box>

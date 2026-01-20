@@ -67,7 +67,7 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
       <Box sx={{ 
         width: { xs: 28, md: 36 }, 
         height: { xs: 6, md: 8 }, 
-        borderTop: '2px dashed #e54e5b',
+        borderTop: '2px solid #df5757',
         backgroundColor: 'transparent',
         flexShrink: 0
       }} />
