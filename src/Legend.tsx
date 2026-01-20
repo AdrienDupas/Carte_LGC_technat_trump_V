@@ -336,7 +336,7 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
         width: { xs: 14, md: 16 }, 
         height: { xs: 14, md: 16 }, 
         borderRadius: '50%', 
-        backgroundColor: '#71a6db', 
+        backgroundColor: '#4991d9', 
         border: '3px solid #fff',
         
         flexShrink: 0

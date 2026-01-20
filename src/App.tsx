@@ -665,7 +665,7 @@ function App() {
               .attr('x2', canalCoords[0])
               .attr('y2', canalCoords[1] + labelOffsetY - 10)
               .attr('stroke', '#DD203C')
-              .attr('stroke-width', 2.5)
+              .attr('stroke-width', 2)
             // Label avec double contour blanc positionné en bas du canal
             const labelFontSize = width < 600 ? 10 : width < 900 ? 11 : 16
             const labelGroup = svg.append('g')
@@ -901,7 +901,7 @@ function App() {
             textAlign: 'center',
           }}
         >
-          Tapez sur l'écran pour commencer l'exploration
+          Cliquez sur l'écran pour commencer l'exploration
         </Box>
       )}
       
@@ -951,28 +951,26 @@ function App() {
         <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
         
         {/* Source en bas au centre */}
-        {!showStartPrompt && (
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 4,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              color: '#666',
-              fontFamily: '"Publico Text Web Regular", serif',
-              fontSize: { xs: '9px', md: '11px' },
-              zIndex: 1000,
-              fontStyle: 'italic',
-            }}
-          >
-            Source: {!showTechnat 
-              ? 'Ferdinand Fried, Das XX. Jahrhundert, 1940' 
-              : !showTrumpGolf 
-              ? 'Scott Howard, 1940' 
-              : 'Donald Trump, X, 2025-2026'
-            }
-          </Box>
-        )}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 4,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: '#666',
+            fontFamily: '"Publico Text Web Regular", serif',
+            fontSize: { xs: '9px', md: '11px' },
+            zIndex: 1000,
+            fontStyle: 'italic',
+          }}
+        >
+          Source: {!showTechnat 
+            ? 'Ferdinand Fried, Das XX. Jahrhundert, 1940' 
+            : !showTrumpGolf 
+            ? 'Scott Howard, 1940' 
+            : 'Donald Trump, X, 2025-2026'
+          }
+        </Box>
         
         {/* Bouton retour en bas à droite */}
         {!showStartPrompt && (showTechnat || showTrumpGolf) && (
@@ -1025,7 +1023,7 @@ function App() {
         }} />
       </Box>
       
-      <Box sx={{ width: '100%', minHeight: { xs: '135px', md: '80px' }, flexShrink: 0 }}>
+      <Box sx={{ width: '100%', minHeight: { xs: '145px', md: '80px' }, flexShrink: 0 }}>
         <Legend showTechnat={showTechnat} showTrumpGolf={showTrumpGolf} />
       </Box>
     </Box>
