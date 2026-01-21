@@ -505,7 +505,7 @@ function App() {
           .on('mousemove', function(event, d) {
             const tooltipNode = tooltip.node() as HTMLDivElement
             if (!tooltipNode) return
-            tooltip.text(`Base ${d.properties.NAME_CITY || 'militaire'}`)
+            tooltip.text(d.properties.NAME_CITY || 'militaire')
             const margin = 10
             const tooltipWidth = tooltipNode.offsetWidth
             const tooltipHeight = tooltipNode.offsetHeight
@@ -526,7 +526,7 @@ function App() {
           .on('mouseenter', function(event, d) {
             const tooltipNode = tooltip.node() as HTMLDivElement
             if (!tooltipNode) return
-            tooltip.text(`Base ${d.properties.NAME_CITY || 'militaire'}`)
+            tooltip.text(d.properties.NAME_CITY || 'militaire')
             const margin = 10
             const tooltipWidth = tooltipNode.offsetWidth
             const tooltipHeight = tooltipNode.offsetHeight
@@ -555,7 +555,7 @@ function App() {
               const dy = coords[1] - my
               const dist = Math.sqrt(dx*dx + dy*dy)
               if (dist < baseRadius + 16) {
-                tooltip.text(`Base ${d.properties.NAME_CITY || 'militaire'}`)
+                tooltip.text(d.properties.NAME_CITY || 'militaire')
                 const margin = 10
                 const tooltipWidth = tooltipNode.offsetWidth
                 const tooltipHeight = tooltipNode.offsetHeight
@@ -627,7 +627,7 @@ function App() {
           .on('mousemove', function(event, d) {
             const tooltipNode = tooltipUsa.node() as HTMLDivElement
             if (!tooltipNode) return
-            tooltipUsa.text(`Base ${d.properties.NAME_CITY || 'USA'}`)
+            tooltipUsa.text(d.properties.NAME_CITY || 'USA')
             const margin = 10
             const tooltipWidth = tooltipNode.offsetWidth
             const tooltipHeight = tooltipNode.offsetHeight
@@ -648,7 +648,7 @@ function App() {
           .on('mouseenter', function(event, d) {
             const tooltipNode = tooltipUsa.node() as HTMLDivElement
             if (!tooltipNode) return
-            tooltipUsa.text(`Base ${d.properties.NAME_CITY || 'USA'}`)
+            tooltipUsa.text(d.properties.NAME_CITY || 'USA')
             const margin = 10
             const tooltipWidth = tooltipNode.offsetWidth
             const tooltipHeight = tooltipNode.offsetHeight
@@ -687,7 +687,7 @@ function App() {
               .attr('stroke', '#DD203C')
               .attr('stroke-width', 2)
             // Label avec double contour blanc positionné en bas du canal
-            const labelFontSize = width < 600 ? 10 : width < 900 ? 11 : 16
+            const labelFontSize = width < 600 ? 11 : width < 900 ? 12 : 16
             const labelGroup = svg.append('g')
               .attr('class', 'canal-panama-label')
             // Contour blanc externe
@@ -740,7 +740,7 @@ function App() {
               { label: 'COL', nameFr: 'Colombie' }
             ]
 
-        const labelFontSize = width < 600 ? 10 : width < 900 ? 13 : 16
+        const labelFontSize = width < 600 ? 11 : width < 900 ? 14 : 18
 
         countryLabels.forEach(({ label, nameFr }, index) => {
           const country = filteredFeatures.find(f => f.properties.NAME_FR === nameFr)
@@ -831,7 +831,7 @@ function App() {
               .attr('text-anchor', 'start')
               .attr('font-family', '"Open Sans", sans-serif')
               .attr('font-size', oceanFontSize)
-              .attr('font-weight', 300)
+              .attr('font-weight', 400)
               .attr('font-style', 'italic')
               .attr('fill', 'none')
               .attr('stroke', '#ffffff')
@@ -850,7 +850,7 @@ function App() {
               .attr('text-anchor', 'start')
               .attr('font-family', '"Open Sans", sans-serif')
               .attr('font-size', oceanFontSize)
-              .attr('font-weight', 300)
+              .attr('font-weight', 400)
               .attr('font-style', 'italic')
               .attr('fill', '#999999')
               .attr('opacity', 0.7)
@@ -1128,7 +1128,7 @@ function App() {
         }} />
       </Box>
       
-      <Box sx={{ width: '100%', minHeight: { xs: '157px', md: '80px' }, flexShrink: 0 }}>
+      <Box sx={{ width: '100%', minHeight: { xs: '157px', sm : '120px',md: '100px' }, flexShrink: 0 }}>
         <Legend showTechnat={showTechnat} showTrumpGolf={showTrumpGolf} />
       </Box>
     </Box>
