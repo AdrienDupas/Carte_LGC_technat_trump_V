@@ -543,44 +543,7 @@ function App() {
               .style('opacity', 1)
           })
 
-        // Affichage du tooltip à proximité (zone de tolérance)
-        svg.on('mousemove.bases-tooltip', function(event) {
-          const [mx, my] = d3.pointer(event, this)
-          const tooltipNode = tooltip.node() as HTMLDivElement
-          if (!tooltipNode) return
-          let found = false
-          basesMilitaireTechnatData.features.forEach(d => {
-            const coords = projection(d.geometry.coordinates as [number, number])
-            if (coords) {
-              const dx = coords[0] - mx
-              const dy = coords[1] - my
-              const dist = Math.sqrt(dx*dx + dy*dy)
-              if (dist < baseRadius + 16) {
-                tooltip.text(d.properties.NAME_CITY || 'militaire')
-                const margin = 10
-                const tooltipWidth = tooltipNode.offsetWidth
-                const tooltipHeight = tooltipNode.offsetHeight
-                let left = event.clientX + margin
-                let top = event.clientY + margin
-                if (left + tooltipWidth > window.innerWidth - margin)
-                  left = event.clientX - tooltipWidth - margin
-                if (top + tooltipHeight > window.innerHeight - margin)
-                  top = event.clientY - tooltipHeight - margin
-                tooltip
-                  .style('left', `${left}px`)
-                  .style('top', `${top}px`)
-                  .style('opacity', 1)
-                found = true
-              }
-            }
-          })
-          if (!found) {
-            tooltip.style('opacity', 0)
-          }
-        })
-        svg.on('mouseleave.bases-tooltip', function() {
-          tooltip.style('opacity', 0)
-        })
+        // Tooltip affiché uniquement lors du survol direct d'un cercle (plus de tooltip à proximité)
       }
 
       // ======================
