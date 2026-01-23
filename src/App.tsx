@@ -1139,7 +1139,7 @@ function App() {
         }} />
       </Box>
       
-      <Box sx={{ width: '100%', minHeight: { xs: '157px', sm : '120px',md: '104px' }, flexShrink: 0 }}>
+      <Box sx={{ width: '100%', minHeight: { xs: '150px', sm : '100px',md: '104px' }, flexShrink: 0 }}>
         <Legend showTechnat={showTechnat} showTrumpGolf={showTrumpGolf} />
       </Box>
     </Box>
