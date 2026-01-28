@@ -98,80 +98,74 @@ function App() {
 
   // Intersection Observer pour le scrollytelling
   useEffect(() => {
-    // Fonction pour trouver la section la plus proche du centre
-    const findCenteredSection = () => {
-      const viewportCenter = window.innerHeight / 2
-      let bestSection = -1
-      let bestDistance = Infinity
+    const scrollContainer = scrollContainerRef.current
+    if (!scrollContainer) return
+
+    // Fonction pour trouver la section active basée sur la position de scroll
+    const findActiveSection = () => {
+      const scrollTop = scrollContainer.scrollTop
+      const viewportHeight = window.innerHeight
+      const viewportCenter = scrollTop + viewportHeight / 2
+      
+      let activeIndex = 0
+      let minDistance = Infinity
       
       sectionRefs.current.forEach((ref, index) => {
         if (ref) {
-          const rect = ref.getBoundingClientRect()
-          const sectionCenter = rect.top + rect.height / 2
-          const distance = Math.abs(sectionCenter - viewportCenter)
+          const sectionTop = ref.offsetTop
+          const sectionHeight = ref.offsetHeight
+          const sectionCenter = sectionTop + sectionHeight / 2
+          const distance = Math.abs(viewportCenter - sectionCenter)
           
-          // Vérifier que la section est au moins partiellement visible
-          if (rect.bottom > 0 && rect.top < window.innerHeight) {
-            if (distance < bestDistance) {
-              bestDistance = distance
-              bestSection = index
-            }
+          if (distance < minDistance) {
+            minDistance = distance
+            activeIndex = index
           }
         }
       })
       
-      return bestSection
+      return activeIndex
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // Quand une intersection change, trouver la section la plus centrée
-        const hasIntersecting = entries.some(entry => entry.isIntersecting)
-        if (hasIntersecting) {
-          const centeredSection = findCenteredSection()
-          if (centeredSection !== -1) {
-            updateSectionState(centeredSection)
-          }
-        }
-      },
-      {
-        root: null,
-        rootMargin: '-30% 0px -30% 0px',
-        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
-      }
-    )
-
-    sectionRefs.current.forEach((ref) => {
-      if (ref) observer.observe(ref)
-    })
-
-    // Gestionnaire de scroll pour détecter les changements de direction
     const handleScroll = () => {
-      const centeredSection = findCenteredSection()
-      if (centeredSection !== -1) {
-        updateSectionState(centeredSection)
-      }
+      const newSection = findActiveSection()
+      updateSectionState(newSection)
     }
 
-    // Throttle le scroll handler pour les performances
-    let ticking = false
-    const throttledScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          handleScroll()
-          ticking = false
-        })
-        ticking = true
-      }
-    }
-
-    window.addEventListener('scroll', throttledScroll, { passive: true })
+    // Écouter le scroll sur le conteneur
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    
+    // Appel initial
+    handleScroll()
 
     return () => {
-      observer.disconnect()
-      window.removeEventListener('scroll', throttledScroll)
+      scrollContainer.removeEventListener('scroll', handleScroll)
     }
   }, [])
+
+  // Gestionnaire pour propager le scroll quand la carte est au-dessus
+  useEffect(() => {
+    const mapContainer = mapContainerRef.current
+    const scrollContainer = scrollContainerRef.current
+    if (!mapContainer || !scrollContainer) return
+
+    const handleWheel = (e: WheelEvent) => {
+      // Propager le scroll au conteneur parent
+      scrollContainer.scrollBy({
+        top: e.deltaY,
+        behavior: 'auto'
+      })
+    }
+
+    // Ajouter le listener sur tout le conteneur de la carte fixe
+    const fixedContainer = mapContainer.parentElement
+    if (fixedContainer) {
+      fixedContainer.addEventListener('wheel', handleWheel, { passive: true })
+      return () => {
+        fixedContainer.removeEventListener('wheel', handleWheel)
+      }
+    }
+  }, [activeSection])
 
   // Dériver showTechnat et showTrumpGolf depuis currentStep
   const showTechnat = currentStep >= 2
@@ -1137,7 +1131,8 @@ function App() {
         height: '100vh',
         display: 'flex', 
         flexDirection: 'column',
-        zIndex: 1
+        zIndex: [2, 4, 6].includes(activeSection) ? 20 : 1,
+        pointerEvents: [2, 4, 6].includes(activeSection) ? 'auto' : 'none',
       }}>
         {/* Header - au-dessus du flou */}
         <Box sx={{ 
@@ -1281,7 +1276,10 @@ function App() {
       </Box>
 
       {/* Conteneur de scrollytelling */}
-      <Box sx={{ position: 'relative', zIndex: 10 }}>
+      <Box sx={{ 
+        position: 'relative', 
+        zIndex: 10,
+      }}>
         
         {/* Section 0: Intro */}
         <Box
@@ -1354,7 +1352,7 @@ function App() {
         <Box
           ref={(el: HTMLDivElement | null) => { sectionRefs.current[1] = el }}
           sx={{
-            minHeight: '100vh',
+            minHeight: '0vh',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
