@@ -129,7 +129,7 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
         </svg>
       </Box>
       <Box sx={{ fontSize: { xs: 11, md: 14 }, opacity: 1 }}>
-        Frontières 1939
+        Frontières de 1939
       </Box>
     </Box>
   ]
@@ -188,8 +188,8 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
       }}
     >
       <Box sx={{ 
-        width: { xs: 14, md: 16 }, 
-        height: { xs: 14, md: 16 }, 
+        width: { xs: 12, sm: 14, md: 18 }, 
+        height: { xs: 12, sm: 14, md: 18 }, 
         borderRadius: '50%',
         backgroundColor: '#DD203C', 
         border: '2px solid #fff',
@@ -256,7 +256,7 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
         </svg>
       </Box>
       <Box sx={{ fontSize: { xs: 11, md: 14 }, opacity: 1 }}>
-        Frontières 1939
+        Frontières de 1939
       </Box>
     </Box>
   ]
@@ -315,12 +315,11 @@ function Legend({ showTechnat, showTrumpGolf }: LegendProps) {
       }}
     >
       <Box sx={{ 
-        width: { xs: 12, md: 16 }, 
-        height: { xs: 12, md: 16 }, 
+        width: { xs: 12, sm: 14, md: 18 }, 
+        height: { xs: 12, sm: 14, md: 18 }, 
         borderRadius: '50%', 
         backgroundColor: '#4991d9', 
-        border: '3px solid #fff',
-        
+        border: '2px solid #fff',
         flexShrink: 0
       }} />
       <Box sx={{ fontSize: { xs: 11, md: 14 }, opacity: 1 }}>

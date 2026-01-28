@@ -8,10 +8,10 @@ import Legend from './Legend'
 
 // Textes pour chaque étape
 const stepTexts = {
-  intro: "Bienvenue dans cette exploration interactive  the printing and typesetting industry. Lorem Ip the printing and typesetting industry. Lorem Ip the printing and typesetting industry. Lorem Ip the printing and typesetting industry. Lorem Ipdes grandes visions géopolitiques du XXe siècle. À travers trois étapes, découvrez comment différents penseurs ont imaginé le découpage du monde en zones d'influence économique et politique. Scrollez pour commencer votre voyage à travers l'histoire.",
-  step1: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages.",
-  step2: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting.",
-  step3: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software."
+  intro: "Ciliciam vero, quae Cydno amni exultat, Tarsus nobilitat, urbs perspicabilis hanc condidisse Perseus memoratur, Iovis filius et Danaes, vel certe ex Aethiopia profectus Sandan quidam nomine vir opulentus et nobilis et Anazarbus auctoris vocabulum referens, et Mopsuestia vatis illius domicilium Mopsi, quem a conmilitio Argonautarum cum aureo vellere direpto redirent, errore abstractum delatumque ad Africae litus mors repentina consumpsit, et ex eo cespite punico tecti manes eius heroici dolorum varietati medentur plerumque sospitales.",
+  step1: "Ciliciam vero, quae Cydno amni exultat, Tarsus nobilitat, urbs perspicabilis hanc condidisse Perseus memoratur, Iovis filius et Danaes, vel certe ex Aethiopia profectus Sandan quidam nomine vir opulentus et nobilis et Anazarbus auctoris vocabulum referens, et Mopsuestia vatis illius domicilium Mopsi, quem a conmilitio Argonautarum cum aureo vellere direpto redirent, errore abstractum delatumque ad Africae litus mors repentina consumpsit, et ex eo cespite punico tecti manes eius heroici dolorum varietati medentur plerumque sospitales.",
+  step2: "Ciliciam vero, quae Cydno amni exultat, Tarsus nobilitat, urbs perspicabilis hanc condidisse Perseus memoratur, Iovis filius et Danaes, vel certe ex Aethiopia profectus Sandan quidam nomine vir opulentus et nobilis et Anazarbus auctoris vocabulum referens, et Mopsuestia vatis illius domicilium Mopsi, quem a conmilitio Argonautarum cum aureo vellere direpto redirent, errore abstractum delatumque ad Africae litus mors repentina consumpsit, et ex eo cespite punico tecti manes eius heroici dolorum varietati medentur plerumque sospitales.",
+  step3: "Ciliciam vero, quae Cydno amni exultat, Tarsus nobilitat, urbs perspicabilis hanc condidisse Perseus memoratur, Iovis filius et Danaes, vel certe ex Aethiopia profectus Sandan quidam nomine vir opulentus et nobilis et Anazarbus auctoris vocabulum referens, et Mopsuestia vatis illius domicilium Mopsi, quem a conmilitio Argonautarum cum aureo vellere direpto redirent, errore abstractum delatumque ad Africae litus mors repentina consumpsit, et ex eo cespite punico tecti manes eius heroici dolorum varietati medentur plerumque sospitales."
 }
 
 interface CountryProperties {
@@ -307,6 +307,18 @@ function App() {
       // Gestionnaire global de tooltip pour les étapes 2 et 3
       if (showTechnat) {
         svg.on('mousemove.country-tooltip', function(event) {
+          // Ne pas afficher le tooltip des pays si un autre tooltip est visible
+          if (d3.selectAll('.military-tooltip').filter(function() { 
+            return d3.select(this).style('opacity') !== '0' 
+          }).size() > 0) {
+            return
+          }
+          if (d3.selectAll('.usa-tooltip').filter(function() { 
+            return d3.select(this).style('opacity') !== '0' 
+          }).size() > 0) {
+            return
+          }
+          
           const [mx, my] = d3.pointer(event, this)
           const coords = projection.invert ? projection.invert([mx, my]) : null
           
@@ -982,6 +994,9 @@ function App() {
     if (!transitionNeeded) return
 
     setIsTransitioning(true)
+    
+    // Optimisation GPU
+    svg.style('will-change', 'transform')
 
     // Définir les projections de départ et d'arrivée
     const start = geoGinzburg9().fitSize([width, height], technatData as any)
@@ -1006,8 +1021,8 @@ function App() {
     const oceanFontSize = width < 600 ? 10 : width < 900 ? 12 : 16
 
     svg.transition()
-      .duration(500)
-      .ease(d3.easeQuadInOut)
+      .duration(1300)
+      .ease(d3.easeCubicOut)
       .tween('zoom', () => (t: number) => {
         const p = geoGinzburg9()
           .scale(scaleI(t))
@@ -1088,6 +1103,7 @@ function App() {
         }
       })
       .on('end', () => {
+        svg.style('will-change', 'auto')
         setIsTransitioning(false)
       })
 
@@ -1120,6 +1136,8 @@ function App() {
         height: '100vh', 
         overflow: 'auto',
         position: 'relative',
+        isolation: 'isolate',
+        zIndex: 20,
       }}
     >
       {/* Carte fixe en arrière-plan */}
@@ -1131,8 +1149,8 @@ function App() {
         height: '100vh',
         display: 'flex', 
         flexDirection: 'column',
-        zIndex: [2, 4, 6].includes(activeSection) ? 20 : 1,
-        pointerEvents: [2, 4, 6].includes(activeSection) ? 'auto' : 'none',
+        zIndex: 1,
+        pointerEvents: 'auto',
       }}>
         {/* Header - au-dessus du flou */}
         <Box sx={{ 
@@ -1279,6 +1297,7 @@ function App() {
       <Box sx={{ 
         position: 'relative', 
         zIndex: 10,
+        pointerEvents: 'none',
       }}>
         
         {/* Section 0: Intro */}
@@ -1303,6 +1322,7 @@ function App() {
               borderRadius: 2,
               opacity: activeSection === 0 ? 1 : 0.3,
               transition: 'opacity 0.5s ease',
+              pointerEvents: 'auto',
             }}
           >
             <Box sx={{ 
@@ -1370,6 +1390,7 @@ function App() {
               borderRadius: 2,
               opacity: activeSection === 1 ? 1 : 0.3,
               transition: 'opacity 0.5s ease',
+              pointerEvents: 'auto',
             }}
           >
             <Box sx={{ 
@@ -1414,6 +1435,7 @@ function App() {
             alignItems: 'flex-end',
             justifyContent: 'center',
             pb: 4,
+            pointerEvents: 'none',
           }}
         >
           <Box
@@ -1427,6 +1449,8 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              position: 'relative',
+              zIndex: 100050,
             }}
           >
             <KeyboardArrowDownIcon sx={{ color: '#DD203C', fontSize: { xs: '24px', sm: '28px' } }} />
@@ -1455,6 +1479,7 @@ function App() {
               borderRadius: 2,
               opacity: activeSection === 3 ? 1 : 0.3,
               transition: 'opacity 0.5s ease',
+              pointerEvents: 'auto',
             }}
           >
             <Box sx={{ 
@@ -1499,6 +1524,7 @@ function App() {
             alignItems: 'flex-end',
             justifyContent: 'center',
             pb: 4,
+            pointerEvents: 'none',
           }}
         >
           <Box
@@ -1512,6 +1538,8 @@ function App() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              position: 'relative',
+              zIndex: 50,
             }}
           >
             <KeyboardArrowDownIcon sx={{ color: '#DD203C', fontSize: { xs: '24px', sm: '28px' } }} />
@@ -1540,6 +1568,7 @@ function App() {
               borderRadius: 2,
               opacity: activeSection === 5 ? 1 : 0.3,
               transition: 'opacity 0.5s ease',
+              pointerEvents: 'auto',
             }}
           >
             <Box sx={{ 
@@ -1583,6 +1612,7 @@ function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            pointerEvents: 'none',
           }}
         />
 
