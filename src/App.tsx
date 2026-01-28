@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Box } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import * as d3 from 'd3'
@@ -52,13 +52,73 @@ function App() {
   const [basesUsa2025Data, setBasesUsa2025Data] = useState<GeoJSON | null>(null)
 
   const [currentStep, setCurrentStep] = useState(0) // 0 = intro, 1, 2, 3
-  const [bubbleState, setBubbleState] = useState<'visible' | 'hidden'>('visible') // État de la bulle actuelle
+  const [activeSection, setActiveSection] = useState(0) // Section actuellement visible
   const [showScrollPrompt, setShowScrollPrompt] = useState(true)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [blurAmount, setBlurAmount] = useState(3) // Flou initial en pixels
+  const [blurAmount, setBlurAmount] = useState(0) // Pas de flou par défaut
   const prevStepRef = useRef(0)
-  const scrollCooldownRef = useRef(false) // Pour le délai de 1.5s entre scrolls
-  const lastScrollTime = useRef(0)
+  
+  // Refs pour les sections de scrollytelling
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // Intersection Observer pour le scrollytelling
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = sectionRefs.current.indexOf(entry.target as HTMLDivElement)
+            if (index !== -1) {
+              setActiveSection(index)
+              // Mettre à jour l'étape de la carte en fonction de la section
+              if (index === 0) {
+                setCurrentStep(0) // Intro
+              } else if (index === 1) {
+                setCurrentStep(1) // Étape 1 - Trump
+              } else if (index === 2) {
+                setCurrentStep(1) // Exploration carte 1
+              } else if (index === 3) {
+                setCurrentStep(2) // Étape 2 - Technat
+              } else if (index === 4) {
+                setCurrentStep(2) // Exploration carte 2
+              } else if (index === 5) {
+                setCurrentStep(3) // Étape 3 - Économies
+              } else if (index === 6) {
+                setCurrentStep(3) // Exploration carte 3
+              }
+              
+              // Gérer le flou selon la section
+              // Sections paires (0, 2, 4, 6) = exploration carte = pas de flou
+              // Sections impaires (1, 3, 5) = texte = flou
+              if (index === 0) {
+                setBlurAmount(3) // Intro floute
+              } else if (index % 2 === 0) {
+                setBlurAmount(0) // Exploration
+              } else {
+                setBlurAmount(3) // Texte
+              }
+              
+              // Masquer le prompt après le premier scroll
+              if (index > 0 && showScrollPrompt) {
+                setShowScrollPrompt(false)
+              }
+            }
+          }
+        })
+      },
+      {
+        root: null,
+        rootMargin: '-40% 0px -40% 0px', // Déclenche quand la section est au centre
+        threshold: 0,
+      }
+    )
+
+    sectionRefs.current.forEach((ref) => {
+      if (ref) observer.observe(ref)
+    })
+
+    return () => observer.disconnect()
+  }, [showScrollPrompt])
 
   // Dériver showTechnat et showTrumpGolf depuis currentStep
   const showTechnat = currentStep >= 2
@@ -92,80 +152,12 @@ function App() {
     })
   }, [])
 
-  // ======================
-  // SCROLL DETECTION - Navigation par étapes avec délai
-  // ======================
-  const handleScroll = useCallback((event: WheelEvent) => {
-    event.preventDefault()
-    
-    // Vérifier le cooldown de 1.5 secondes
-    const now = Date.now()
-    if (scrollCooldownRef.current || now - lastScrollTime.current < 1500) {
-      return
-    }
-
-    // Masquer le prompt de scroll dès le premier scroll
-    if (showScrollPrompt) {
-      setShowScrollPrompt(false)
-    }
-
-    // Détecter la direction du scroll
-    const scrollingDown = event.deltaY > 0
-
-    // Activer le cooldown
-    scrollCooldownRef.current = true
-    lastScrollTime.current = now
-
-    // Cas spécial pour l'intro (étape 0) : transition fluide intro → bulle 1
-    if (currentStep === 0 && scrollingDown) {
-      // D'abord faire disparaître l'intro vers le haut
-      setBubbleState('hidden')
-      setBlurAmount(0)
-      // Puis après la transition, afficher la bulle 1
-      setTimeout(() => {
-        setCurrentStep(1)
-        setBubbleState('visible')
-      }, 400) // Attendre la fin de la transition (0.4s)
-    } else if (bubbleState === 'visible') {
-      // Si la bulle est visible, la faire se rétracter vers le haut
-      setBubbleState('hidden')
-      // Déflouter progressivement la carte
-      setBlurAmount(0)
-    } else {
-      // Si la bulle est cachée, passer à l'étape suivante/précédente
-      if (scrollingDown && currentStep < 3) {
-        setCurrentStep(prev => prev + 1)
-        setBubbleState('visible')
-        setBlurAmount(0) // Pas de flou pour les nouvelles étapes
-      } else if (!scrollingDown && currentStep > 0) {
-        setCurrentStep(prev => prev - 1)
-        setBubbleState('visible')
-        if (currentStep - 1 === 0) {
-          setBlurAmount(3) // Remettre le flou pour l'intro
-        }
-      }
-    }
-
-    // Désactiver le cooldown après 1.5 secondes
-    setTimeout(() => {
-      scrollCooldownRef.current = false
-    }, 1500)
-  }, [currentStep, showScrollPrompt, bubbleState])
-
   // Masquer tous les tooltips lors des changements d'étape
   useEffect(() => {
     d3.selectAll('.country-tooltip').style('opacity', 0)
     d3.selectAll('.military-tooltip').style('opacity', 0)
     d3.selectAll('.usa-tooltip').style('opacity', 0)
   }, [currentStep])
-
-  useEffect(() => {
-    const container = scrollContainerRef.current
-    if (!container) return
-
-    container.addEventListener('wheel', handleScroll, { passive: false })
-    return () => container.removeEventListener('wheel', handleScroll)
-  }, [handleScroll])
 
   // ======================
   // MAP RENDER
@@ -1079,13 +1071,13 @@ function App() {
       sx={{ 
         width: '100vw', 
         height: '100vh', 
-        overflow: 'hidden',
+        overflow: 'auto',
         position: 'relative',
       }}
     >
       {/* Carte fixe en arrière-plan */}
       <Box sx={{ 
-        position: 'sticky',
+        position: 'fixed',
         top: 0,
         left: 0,
         width: '100%', 
@@ -1099,7 +1091,7 @@ function App() {
           width: '100%', 
           display: 'flex', 
           flexDirection: 'column',
-          alignItems: 'flex-start', 
+          alignItems: 'center', 
           justifyContent: 'center',
           px: 1.2,
           pb: 1,
@@ -1144,12 +1136,13 @@ function App() {
           <svg ref={svgRef} style={{ width: '100%', height: '100%' }} />
           
           {/* Indicateur pour continuer à explorer */}
-          {!showScrollPrompt && bubbleState === 'hidden' && (
+          {showScrollPrompt && (
             <Box
               sx={{
                 position: 'absolute',
-                left: { xs: 12, md: 16 },
-                top: { xs: 12, md: 16 },
+                left: '50%',
+                bottom: { xs: 20, md: 30 },
+                transform: 'translateX(-50%)',
                 bgcolor: 'rgba(255,255,255,0.98)',
                 px: { xs: 2, sm: 2.5, md: 3 },
                 py: { xs: 1, sm: 1.2, md: 1.5 },
@@ -1161,9 +1154,9 @@ function App() {
                 fontWeight: 600,
                 animation: 'pulseSubtle 2.5s ease-in-out infinite',
                 '@keyframes pulseSubtle': {
-                  '0%': { opacity: 0.85, transform: 'scale(1)' },
-                  '50%': { opacity: 1, transform: 'scale(1.05)' },
-                  '100%': { opacity: 0.85, transform: 'scale(1)' },
+                  '0%': { opacity: 0.85, transform: 'translateX(-50%) scale(1)' },
+                  '50%': { opacity: 1, transform: 'translateX(-50%) scale(1.05)' },
+                  '100%': { opacity: 0.85, transform: 'translateX(-50%) scale(1)' },
                 },
                 zIndex: 101,
                 textAlign: 'center',
@@ -1173,36 +1166,13 @@ function App() {
                 pointerEvents: 'none',
               }}
             >
-              {currentStep < 3 ? (
-                <>
-                  Scrollez
-                  <KeyboardArrowDownIcon 
-                    sx={{ 
-                      fontSize: { xs: '16px', sm: '18px', md: '20px' },
-                      color: '#DD203C',
-                    }}
-                  />
-                </>
-              ) : (
-                <>
-                  Revenez
-                  <Box 
-                    sx={{ 
-                      fontSize: { xs: '16px', sm: '18px', md: '20px' },
-                      color: '#DD203C',
-                      transform: 'rotate(180deg)',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <KeyboardArrowDownIcon 
-                      sx={{ 
-                        fontSize: { xs: '16px', sm: '18px', md: '20px' },
-                      }}
-                    />
-                  </Box>
-                </>
-              )}
+              Scrollez
+              <KeyboardArrowDownIcon 
+                sx={{ 
+                  fontSize: { xs: '16px', sm: '18px', md: '20px' },
+                  color: '#DD203C',
+                }}
+              />
             </Box>
           )}
           
@@ -1257,163 +1227,314 @@ function App() {
         </Box>
       </Box>
 
-      {/* Bulle de texte animée - se rétracte vers le haut */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: bubbleState === 'visible' ? '0' : '-100%',
-          left: 0,
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          zIndex: 20,
-          transition: 'top 0.4s ease-in-out',
-          pointerEvents: bubbleState === 'visible' ? 'auto' : 'none',
-        }}
-      >
+      {/* Conteneur de scrollytelling */}
+      <Box sx={{ position: 'relative', zIndex: 10 }}>
+        
+        {/* Section 0: Intro */}
         <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[0] = el }}
           sx={{
-            width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            bgcolor: 'rgba(255,255,255,0.97)',
-            px: { xs: 2, sm: 3, md: 4 },
-            py: { xs: 2.5, sm: 3, md: 4 },
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            fontSize: { xs: '14px', sm: '16px', md: '18px' },
-            lineHeight: 1.8,
-            color: '#1b1b1b',
-            fontFamily: '"Open Sans", sans-serif',
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            px: { xs: 2, sm: 4, md: 6 },
+            py: 4,
           }}
         >
-          {/* Contenu de l'intro */}
-          {currentStep === 0 && (
-            <>
-              <Box sx={{ 
-                fontFamily: '"Open Sans", sans-serif',
-                fontSize: { xs: '18px', sm: '22px', md: '26px' },
-                fontWeight: 'bold',
-                mb: 2,
-                color: '#DD203C'
-              }}>
-                Introduction
-              </Box>
+          <Box
+            sx={{
+              width: { xs: '100%', sm: '80%', md: '60%' },
+              bgcolor: 'rgba(255,255,255,0.97)',
+              px: { xs: 2, sm: 3, md: 4 },
+              py: { xs: 2.5, sm: 3, md: 4 },
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              opacity: activeSection === 0 ? 1 : 0.3,
+              transition: 'opacity 0.5s ease',
+            }}
+          >
+            <Box sx={{ 
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: { xs: '18px', sm: '22px', md: '26px' },
+              fontWeight: 'bold',
+              mb: 2,
+              color: '#DD203C'
+            }}>
+              Introduction
+            </Box>
+            <Box sx={{
+              fontSize: { xs: '14px', sm: '16px', md: '18px' },
+              lineHeight: 1.8,
+              color: '#1b1b1b',
+              fontFamily: '"Open Sans", sans-serif',
+            }}>
               {stepTexts.intro}
-              <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 1,
-                mt: 3,
-                color: '#DD203C',
-                fontWeight: 600,
-                fontSize: { xs: '15px', sm: '17px', md: '19px' },
-                letterSpacing: 0.2,
-                userSelect: 'none',
-              }}>
-                Scrollez pour explorer
-                <KeyboardArrowDownIcon 
-                  sx={{ 
-                    fontSize: { xs: '28px', sm: '32px', md: '36px' },
-                    color: '#DD203C',
-                    animation: 'bounce 1.5s ease-in-out infinite',
-                    '@keyframes bounce': {
-                      '0%, 100%': { transform: 'translateY(0)' },
-                      '50%': { transform: 'translateY(8px)' },
-                    },
-                  }}
-                />
-              </Box>
-            </>
-          )}
-
-          {/* Contenu étape 1 */}
-          {currentStep === 1 && (
-            <>
-              <Box sx={{ 
-                fontFamily: '"Open Sans", sans-serif',
-                fontSize: { xs: '16px', sm: '20px', md: '24px' },
-                fontWeight: 'bold',
-                mb: 2,
-                color: '#DD203C'
-              }}>
-                Les revendications de Trump
-              </Box>
-              {stepTexts.step3}
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 3,
-              }}>
-                <KeyboardArrowDownIcon 
-                  sx={{ 
-                    fontSize: { xs: '28px', sm: '32px', md: '36px' },
-                    color: '#DD203C',
-                    animation: 'bounce 1.5s ease-in-out infinite',
-                  }}
-                />
-              </Box>
-            </>
-          )}
-
-          {/* Contenu étape 2 */}
-          {currentStep === 2 && (
-            <>
-              <Box sx={{ 
-                fontFamily: '"Open Sans", sans-serif',
-                fontSize: { xs: '16px', sm: '20px', md: '24px' },
-                fontWeight: 'bold',
-                mb: 2,
-                color: '#DD203C'
-              }}>
-                Le Technat
-              </Box>
-              {stepTexts.step2}
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 3,
-              }}>
-                <KeyboardArrowDownIcon 
-                  sx={{ 
-                    fontSize: { xs: '28px', sm: '32px', md: '36px' },
-                    color: '#DD203C',
-                    animation: 'bounce 1.5s ease-in-out infinite',
-                  }}
-                />
-              </Box>
-            </>
-          )}
-
-          {/* Contenu étape 3 */}
-          {currentStep === 3 && (
-            <>
-              <Box sx={{ 
-                fontFamily: '"Open Sans", sans-serif',
-                fontSize: { xs: '16px', sm: '20px', md: '24px' },
-                fontWeight: 'bold',
-                mb: 2,
-                color: '#DD203C'
-              }}>
-                Les économies de grands espaces
-              </Box>
-              {stepTexts.step1}
-              <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                mt: 3,
-              }}>
-                <KeyboardArrowDownIcon 
-                  sx={{ 
-                    fontSize: { xs: '28px', sm: '32px', md: '36px' },
-                    color: '#DD203C',
-                    animation: 'bounce 1.5s ease-in-out infinite',
-                  }}
-                />
-              </Box>
-            </>
-          )}
+            </Box>
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1,
+              mt: 3,
+              color: '#DD203C',
+              fontWeight: 600,
+              fontSize: { xs: '15px', sm: '17px', md: '19px' },
+            }}>
+              Scrollez pour explorer
+              <KeyboardArrowDownIcon 
+                sx={{ 
+                  fontSize: { xs: '28px', sm: '32px', md: '36px' },
+                  color: '#DD203C',
+                  animation: 'bounce 1.5s ease-in-out infinite',
+                  '@keyframes bounce': {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(8px)' },
+                  },
+                }}
+              />
+            </Box>
+          </Box>
         </Box>
+
+        {/* Section 1: Étape 1 - Trump (texte) */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[1] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            px: { xs: 2, sm: 4, md: 6 },
+            py: 4,
+          }}
+        >
+          <Box
+            sx={{
+              width: { xs: '100%', sm: '80%', md: '60%' },
+              bgcolor: 'rgba(255,255,255,0.97)',
+              px: { xs: 2, sm: 3, md: 4 },
+              py: { xs: 2.5, sm: 3, md: 4 },
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              opacity: activeSection === 1 ? 1 : 0.3,
+              transition: 'opacity 0.5s ease',
+            }}
+          >
+            <Box sx={{ 
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: { xs: '16px', sm: '20px', md: '24px' },
+              fontWeight: 'bold',
+              mb: 2,
+              color: '#DD203C'
+            }}>
+              Les revendications de Trump
+            </Box>
+            <Box sx={{
+              fontSize: { xs: '14px', sm: '16px', md: '18px' },
+              lineHeight: 1.8,
+              color: '#1b1b1b',
+              fontFamily: '"Open Sans", sans-serif',
+            }}>
+              {stepTexts.step1}
+            </Box>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 3,
+            }}>
+              <KeyboardArrowDownIcon 
+                sx={{ 
+                  fontSize: { xs: '28px', sm: '32px', md: '36px' },
+                  color: '#DD203C',
+                  animation: 'bounce 1.5s ease-in-out infinite',
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Section 2: Exploration carte 1 */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[2] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            pb: 4,
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.9)',
+              p: 1.5,
+              borderRadius: '50%',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              opacity: activeSection === 2 ? 1 : 0,
+              transition: 'opacity 0.5s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <KeyboardArrowDownIcon sx={{ color: '#DD203C', fontSize: { xs: '24px', sm: '28px' } }} />
+          </Box>
+        </Box>
+
+        {/* Section 3: Étape 2 - Technat (texte) */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[3] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            px: { xs: 2, sm: 4, md: 6 },
+            py: 4,
+          }}
+        >
+          <Box
+            sx={{
+              width: { xs: '100%', sm: '80%', md: '60%' },
+              bgcolor: 'rgba(255,255,255,0.97)',
+              px: { xs: 2, sm: 3, md: 4 },
+              py: { xs: 2.5, sm: 3, md: 4 },
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              opacity: activeSection === 3 ? 1 : 0.3,
+              transition: 'opacity 0.5s ease',
+            }}
+          >
+            <Box sx={{ 
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: { xs: '16px', sm: '20px', md: '24px' },
+              fontWeight: 'bold',
+              mb: 2,
+              color: '#DD203C'
+            }}>
+              Le Technat
+            </Box>
+            <Box sx={{
+              fontSize: { xs: '14px', sm: '16px', md: '18px' },
+              lineHeight: 1.8,
+              color: '#1b1b1b',
+              fontFamily: '"Open Sans", sans-serif',
+            }}>
+              {stepTexts.step2}
+            </Box>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 3,
+            }}>
+              <KeyboardArrowDownIcon 
+                sx={{ 
+                  fontSize: { xs: '28px', sm: '32px', md: '36px' },
+                  color: '#DD203C',
+                  animation: 'bounce 1.5s ease-in-out infinite',
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Section 4: Exploration carte 2 */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[4] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            pb: 4,
+          }}
+        >
+          <Box
+            sx={{
+              bgcolor: 'rgba(255,255,255,0.9)',
+              p: 1.5,
+              borderRadius: '50%',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              opacity: activeSection === 4 ? 1 : 0,
+              transition: 'opacity 0.5s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <KeyboardArrowDownIcon sx={{ color: '#DD203C', fontSize: { xs: '24px', sm: '28px' } }} />
+          </Box>
+        </Box>
+
+        {/* Section 5: Étape 3 - Économies (texte) */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[5] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            px: { xs: 2, sm: 4, md: 6 },
+            py: 4,
+          }}
+        >
+          <Box
+            sx={{
+              width: { xs: '100%', sm: '80%', md: '60%' },
+              bgcolor: 'rgba(255,255,255,0.97)',
+              px: { xs: 2, sm: 3, md: 4 },
+              py: { xs: 2.5, sm: 3, md: 4 },
+              boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+              borderRadius: 2,
+              opacity: activeSection === 5 ? 1 : 0.3,
+              transition: 'opacity 0.5s ease',
+            }}
+          >
+            <Box sx={{ 
+              fontFamily: '"Open Sans", sans-serif',
+              fontSize: { xs: '16px', sm: '20px', md: '24px' },
+              fontWeight: 'bold',
+              mb: 2,
+              color: '#DD203C'
+            }}>
+              Les économies de grands espaces
+            </Box>
+            <Box sx={{
+              fontSize: { xs: '14px', sm: '16px', md: '18px' },
+              lineHeight: 1.8,
+              color: '#1b1b1b',
+              fontFamily: '"Open Sans", sans-serif',
+            }}>
+              {stepTexts.step3}
+            </Box>
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 3,
+            }}>
+              <KeyboardArrowDownIcon 
+                sx={{ 
+                  fontSize: { xs: '28px', sm: '32px', md: '36px' },
+                  color: '#DD203C',
+                  animation: 'bounce 1.5s ease-in-out infinite',
+                }}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        {/* Section 6: Exploration finale */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[6] = el }}
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        />
+
       </Box>
     </Box>
   )
