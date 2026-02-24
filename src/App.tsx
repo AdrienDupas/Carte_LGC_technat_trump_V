@@ -144,22 +144,61 @@ function App() {
     const scrollContainer = scrollContainerRef.current
     if (!mapContainer || !scrollContainer) return
 
+    // ── Desktop: wheel events ──
     const handleWheel = (e: WheelEvent) => {
-      // Ne pas propager si le parent contrôle le scroll (sinon double-scroll sur Chrome)
       if (parentControllingRef.current) return
-      // Propager le scroll au conteneur parent
       scrollContainer.scrollBy({
         top: e.deltaY,
         behavior: 'auto'
       })
     }
 
-    // Ajouter le listener sur tout le conteneur de la carte fixe
+    // ── Mobile: touch events (Android + iOS) ──
+    // Android uses touchstart/touchmove/touchend, not wheel.
+    // We capture touches on the fixed container and translate
+    // the drag delta into scrollBy() on the scrollContainer.
+    let touchStartY: number | null = null
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Don't intercept touches on interactive elements (buttons, links…)
+      const target = e.target as HTMLElement
+      if (target.closest('button, a, [role="button"], input, select, textarea')) {
+        touchStartY = null
+        return
+      }
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY
+      }
+    }
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1 || touchStartY === null) return
+      if (parentControllingRef.current) return
+
+      const currentY = e.touches[0].clientY
+      const deltaY = touchStartY - currentY // positive = scroll down
+      touchStartY = currentY
+
+      scrollContainer.scrollBy({ top: deltaY, behavior: 'auto' })
+      e.preventDefault() // prevent native bounce on the fixed map
+    }
+
+    const handleTouchEnd = () => {
+      touchStartY = null
+    }
+
+    // Attach listeners to the entire fixed map container
     const fixedContainer = mapContainer.parentElement
     if (fixedContainer) {
       fixedContainer.addEventListener('wheel', handleWheel, { passive: true })
+      fixedContainer.addEventListener('touchstart', handleTouchStart, { passive: true })
+      fixedContainer.addEventListener('touchmove', handleTouchMove, { passive: false })
+      fixedContainer.addEventListener('touchend', handleTouchEnd, { passive: true })
       return () => {
         fixedContainer.removeEventListener('wheel', handleWheel)
+        fixedContainer.removeEventListener('touchstart', handleTouchStart)
+        fixedContainer.removeEventListener('touchmove', handleTouchMove)
+        fixedContainer.removeEventListener('touchend', handleTouchEnd)
       }
     }
   }, [activeSection])
@@ -1352,6 +1391,7 @@ function App() {
         flexDirection: 'column',
         zIndex: 1,
         pointerEvents: 'auto',
+        touchAction: 'none',
       }}>
         {/* Header - au-dessus du flou */}
         <Box sx={{ 
@@ -1412,9 +1452,9 @@ function App() {
             onClick={() => setLanguage('fr')}
             onTouchEnd={(e: React.TouchEvent) => { e.preventDefault(); setLanguage('fr'); }}
             sx={{
-              px: { xs: 0.6, sm: 0.8, md: 1 },
-              py: { xs: 0.2, sm: 0.3 },
-              fontSize: { xs: '10px', sm: '11px', md: '12px' },
+              px: { xs: 0.5, sm: 0.6, md: 0.8 },
+              py: { xs: 0.15, sm: 0.2 },
+              fontSize: { xs: '9px', sm: '10px', md: '11px' },
               fontFamily: '"Open Sans", sans-serif',
               fontWeight: language === 'fr' ? 700 : 400,
               backgroundColor: language === 'fr' ? '#DD203C' : 'rgba(255,255,255,0.95)',
@@ -1423,8 +1463,8 @@ function App() {
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               // Garantir la zone de touch minimale sur mobile
-              minWidth: '36px',
-              minHeight: '36px',
+              minWidth: '32px',
+              minHeight: '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1440,9 +1480,9 @@ function App() {
             onClick={() => setLanguage('es')}
             onTouchEnd={(e: React.TouchEvent) => { e.preventDefault(); setLanguage('es'); }}
             sx={{
-              px: { xs: 0.6, sm: 0.8, md: 1 },
-              py: { xs: 0.2, sm: 0.3 },
-              fontSize: { xs: '10px', sm: '11px', md: '12px' },
+              px: { xs: 0.5, sm: 0.6, md: 0.8 },
+              py: { xs: 0.15, sm: 0.2 },
+              fontSize: { xs: '9px', sm: '10px', md: '11px' },
               fontFamily: '"Open Sans", sans-serif',
               fontWeight: language === 'es' ? 700 : 400,
               backgroundColor: language === 'es' ? '#DD203C' : 'rgba(255,255,255,0.95)',
@@ -1450,8 +1490,8 @@ function App() {
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
-              minWidth: '36px',
-              minHeight: '36px',
+              minWidth: '32px',
+              minHeight: '32px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
